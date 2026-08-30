@@ -68,6 +68,9 @@ otterls.start = function(main_nr, completion)
                 -- handler (see otter/lsp/handlers.lua), but without advertising the
                 -- capability Neovim never sends the request.
                 inlayHintProvider = true,
+                codeActionProvider = {
+                  resolveProvider = true,
+                },
                 completionProvider = completion_options,
                 textDocumentSync = {
                   -- we don't do anything with this, yet
@@ -169,6 +172,7 @@ otterls.start = function(main_nr, completion)
           params.otter.main_nr = main_nr
           params.otter.main_uri = main_uri
           params.otter.otter_uri = otter_uri
+          params.otter.lang = lang
 
           -- special modifications to params
           -- for some methods
@@ -181,6 +185,31 @@ otterls.start = function(main_nr, completion)
           end
           -- take care of potential indents
           keeper.modify_position(params, main_nr, true, true)
+          -- Code actions are the one method where several attached servers
+          -- routinely answer the same request (a linter and a type checker, say).
+          -- buf_request invokes the callback once per server and nvim keeps only
+          -- the response that arrives first, which silently hides every other
+          -- server's actions, so gather them all and merge instead.
+          if method == ms.textDocument_codeAction then
+            vim.lsp.buf_request_all(otter_nr, method, params, function(results)
+              local merged = {}
+              local last_ctx
+              for _, res in pairs(results) do
+                if res.result then
+                  local result = res.result
+                  last_ctx = res.context
+                  if handlers[method] ~= nil then
+                    local _, filtered = handlers[method](res.err, result, res.context)
+                    result = filtered
+                  end
+                  vim.list_extend(merged, result or {})
+                end
+              end
+              handler(nil, merged, last_ctx or { params = params, bufnr = otter_nr, method = method })
+            end)
+            return
+          end
+
           -- send the request to the otter buffer
           -- modification of the response is done by our handler
           -- and then passed on to the default handler or user-defined handler
