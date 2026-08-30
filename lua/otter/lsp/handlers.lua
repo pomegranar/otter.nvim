@@ -85,8 +85,14 @@ local function edit_within_chunks(edit, main_nr, lang)
       if range then
         local last = range["end"]
         -- an edit that replaces a whole final line ends at character 0 of the
-        -- following line, which is legitimately one past the chunk
-        local last_line = (last.character == 0) and (last.line - 1) or last.line
+        -- *following* line, which is legitimately one past the chunk. This must
+        -- not be applied to a range that ends on the line it starts on, such as
+        -- the zero-width insertion at character 0 that servers use to prepend a
+        -- line -- that still belongs to the line it points at.
+        local last_line = last.line
+        if last.character == 0 and last.line > range.start.line then
+          last_line = last.line - 1
+        end
         if not line_in_chunks(range.start.line, chunks) or not line_in_chunks(last_line, chunks) then
           return false, string.format("it edits line %d, outside any %s chunk", range.start.line + 1, lang)
         end
