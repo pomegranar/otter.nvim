@@ -64,6 +64,9 @@ otterls.start = function(main_nr, completion)
                 renameProvider = true,
                 referencesProvider = true,
                 documentSymbolProvider = true,
+                codeActionProvider = {
+                  resolveProvider = true,
+                },
                 completionProvider = completion_options,
                 textDocumentSync = {
                   -- we don't do anything with this, yet
@@ -165,6 +168,7 @@ otterls.start = function(main_nr, completion)
           params.otter.main_nr = main_nr
           params.otter.main_uri = main_uri
           params.otter.otter_uri = otter_uri
+          params.otter.lang = lang
 
           -- special modifications to params
           -- for some methods
