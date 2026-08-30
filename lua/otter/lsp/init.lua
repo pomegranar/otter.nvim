@@ -64,6 +64,10 @@ otterls.start = function(main_nr, completion)
                 renameProvider = true,
                 referencesProvider = true,
                 documentSymbolProvider = true,
+                -- otter already implements a `textDocument/inlayHint` response
+                -- handler (see otter/lsp/handlers.lua), but without advertising the
+                -- capability Neovim never sends the request.
+                inlayHintProvider = true,
                 completionProvider = completion_options,
                 textDocumentSync = {
                   -- we don't do anything with this, yet
